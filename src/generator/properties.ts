@@ -36,7 +36,7 @@ function getJSONSchemaScalar(
         case 'Decimal':
             return 'number'
         case 'Json':
-            return ['number', 'string', 'boolean', 'object', 'array', 'null']
+            return 'object'
         case 'Boolean':
             return 'boolean'
         default:
@@ -45,23 +45,17 @@ function getJSONSchemaScalar(
 }
 
 function getJSONSchemaType(field: DMMF.Field): JSONSchema7['type'] {
-    const { isList, isRequired } = field
+    const { isList } = field
     const scalarFieldType =
         isScalarType(field) && !isList
             ? getJSONSchemaScalar(field.type)
             : field.isList
-            ? 'array'
-            : isEnumType(field)
-            ? 'string'
-            : 'object'
+                ? 'array'
+                : isEnumType(field)
+                    ? 'string'
+                    : 'object'
 
-    const isFieldUnion = Array.isArray(scalarFieldType)
-
-    return isRequired || isList
-        ? scalarFieldType
-        : isFieldUnion
-        ? Array.from(new Set([...scalarFieldType, 'null']))
-        : [scalarFieldType, 'null']
+    return scalarFieldType
 }
 
 function getDefaultValue(field: DMMF.Field): JSONSchema7['default'] {
@@ -113,20 +107,17 @@ function getJSONSchemaForPropertyReference(
     field: DMMF.Field,
     { schemaId, persistOriginalType }: TransformOptions,
 ): JSONSchema7 {
-    const notNullable = field.isRequired || field.isList
-
     assertFieldTypeIsString(field.type)
 
     const typeRef = `${DEFINITIONS_ROOT}${field.type}`
     const ref = { $ref: schemaId ? `${schemaId}${typeRef}` : typeRef }
-    return notNullable
-        ? ref
-        : {
-              anyOf: [ref, { type: 'null' }],
-              ...(persistOriginalType && {
-                  originalType: field.type,
-              }),
-          }
+
+    return {
+        ...ref,
+        ...(persistOriginalType && {
+            originalType: field.type,
+        }),
+    }
 }
 
 function getItemsByDMMFType(
@@ -136,8 +127,8 @@ function getItemsByDMMFType(
     return (isScalarType(field) && !field.isList) || isEnumType(field)
         ? undefined
         : isScalarType(field) && field.isList
-        ? { type: getJSONSchemaScalar(field.type) }
-        : getJSONSchemaForPropertyReference(field, transformOptions)
+            ? { type: getJSONSchemaScalar(field.type) }
+            : getJSONSchemaForPropertyReference(field, transformOptions)
 }
 
 function isSingleReference(field: DMMF.Field) {

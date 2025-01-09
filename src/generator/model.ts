@@ -60,22 +60,19 @@ export function getJSONSchemaModel(
             }
         }
 
-        if (transformOptions.includeRequiredFields) {
-            const required = definitionPropsMap.reduce(
-                (filtered: string[], [name, , fieldMetaData]) => {
-                    if (
-                        fieldMetaData.required &&
-                        fieldMetaData.isScalar &&
-                        !fieldMetaData.hasDefaultValue
-                    ) {
-                        filtered.push(name)
-                    }
-                    return filtered
-                },
-                [],
-            )
+        const required = definitionPropsMap.reduce(
+            (filtered: string[], [name, , fieldMetaData]) => {
+                if (fieldMetaData.required || fieldMetaData.hasDefaultValue) {
+                    filtered.push(name)
+                }
+                return filtered
+            },
+            [],
+        )
+        if (required.length > 0) {
             definition.required = required
         }
+
         return [model.name, definition]
     }
 }
