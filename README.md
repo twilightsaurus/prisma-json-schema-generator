@@ -49,7 +49,6 @@ generator jsonSchema {
   provider = "prisma-json-schema-generator"
   keepRelationScalarFields = "true"
   schemaId = "some-schema-id"
-  includeRequiredFields = "true"
   persistOriginalType = "true"
   forceAnyOf = "true"
 }
