@@ -15,8 +15,7 @@ export type DefinitionMap = [name: string, definition: JSONSchema7Definition]
 export type PropertyMap = [...DefinitionMap, PropertyMetaData]
 
 export interface TransformOptions {
-    keepRelationScalarFields?: 'true' | 'false'
-    keepRelationFields?: 'true' | 'false'
+    excludeRelationFields?: 'true' | 'false'
     schemaId?: string
     persistOriginalType?: 'true' | 'false'
     forceAnyOf?: 'true' | 'false'
