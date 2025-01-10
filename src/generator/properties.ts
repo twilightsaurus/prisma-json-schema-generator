@@ -8,7 +8,6 @@ import {
     PrismaPrimitive,
 } from './helpers'
 import {
-    ModelMetaData,
     PropertyMap,
     PropertyMetaData,
     TransformOptions,
@@ -124,26 +123,27 @@ function getItemsByDMMFType(
     field: DMMF.Field,
     transformOptions: TransformOptions,
 ): JSONSchema7['items'] {
-    return (isScalarType(field) && !field.isList) || isEnumType(field)
-        ? undefined
-        : isScalarType(field) && field.isList
-            ? { type: getJSONSchemaScalar(field.type) }
-            : getJSONSchemaForPropertyReference(field, transformOptions)
+    if (isScalarType(field) && !field.isList) {
+        return undefined
+    }
+
+    if (isEnumType(field)) {
+        if (field.isList) {
+            const typeRef = `${DEFINITIONS_ROOT}${field.type}`
+            return {
+                $ref: transformOptions.schemaId ? `${transformOptions.schemaId}${typeRef}` : typeRef
+            }
+        }
+        return undefined
+    }
+
+    return isScalarType(field) && field.isList
+        ? { type: getJSONSchemaScalar(field.type) }
+        : getJSONSchemaForPropertyReference(field, transformOptions)
 }
 
 function isSingleReference(field: DMMF.Field) {
     return !isScalarType(field) && !field.isList && !isEnumType(field)
-}
-
-function getEnumListByDMMFType(modelMetaData: ModelMetaData) {
-    return (field: DMMF.Field): string[] | undefined => {
-        const enumItem = modelMetaData.enums.find(
-            ({ name }) => name === field.type,
-        )
-
-        if (!enumItem) return undefined
-        return enumItem.values.map((item) => item.name)
-    }
 }
 
 function getDescription(field: DMMF.Field) {
@@ -171,14 +171,22 @@ function convertUnionType(
 }
 
 function getPropertyDefinition(
-    modelMetaData: ModelMetaData,
     transformOptions: TransformOptions,
     field: DMMF.Field,
 ) {
+    if (isEnumType(field)) {
+        const typeRef = `${DEFINITIONS_ROOT}${field.type}`
+        return {
+            $ref: transformOptions.schemaId ? `${transformOptions.schemaId}${typeRef}` : typeRef,
+            ...(transformOptions.persistOriginalType && {
+                originalType: field.type,
+            })
+        }
+    }
+
     const type = getJSONSchemaType(field)
     const format = getFormatByDMMFType(field.type)
     const items = getItemsByDMMFType(field, transformOptions)
-    const enumList = getEnumListByDMMFType(modelMetaData)(field)
     const defaultValue = getDefaultValue(field)
     const description = getDescription(field)
     const convertedUnion = convertUnionType(
@@ -195,7 +203,6 @@ function getPropertyDefinition(
         ...(isDefined(defaultValue) && { default: defaultValue }),
         ...(isDefined(format) && !convertedUnion.anyOf && { format }),
         ...(isDefined(items) && { items }),
-        ...(isDefined(enumList) && { enum: enumList }),
         ...(isDefined(description) && { description }),
     }
 
@@ -203,7 +210,6 @@ function getPropertyDefinition(
 }
 
 export function getJSONSchemaProperty(
-    modelMetaData: ModelMetaData,
     transformOptions: TransformOptions,
 ) {
     return (field: DMMF.Field): PropertyMap => {
@@ -215,7 +221,7 @@ export function getJSONSchemaProperty(
 
         const property = isSingleReference(field)
             ? getJSONSchemaForPropertyReference(field, transformOptions)
-            : getPropertyDefinition(modelMetaData, transformOptions, field)
+            : getPropertyDefinition(transformOptions, field)
 
         return [field.name, property, propertyMetaData]
     }

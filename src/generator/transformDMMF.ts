@@ -31,12 +31,21 @@ export function transformDMMF(
     const { schemaId } = transformOptions
 
     const modelDefinitionsMap = models.map(
-        getJSONSchemaModel({ enums }, transformOptions),
+        getJSONSchemaModel(transformOptions),
     )
 
     const typeDefinitionsMap = types.map(
-        getJSONSchemaModel({ enums }, transformOptions),
+        getJSONSchemaModel(transformOptions),
     )
+
+    const enumDefinitionsMap = enums.map((enumItem): [string, JSONSchema7Definition] => [
+        enumItem.name,
+        {
+            type: 'string',
+            enum: enumItem.values.map(v => v.name),
+            ...(enumItem.documentation && { description: enumItem.documentation })
+        }
+    ])
 
     const modelPropertyDefinitionsMap = models.map(
         getPropertyDefinition(transformOptions),
@@ -44,6 +53,7 @@ export function transformDMMF(
     const definitions = Object.fromEntries([
         ...modelDefinitionsMap,
         ...typeDefinitionsMap,
+        ...enumDefinitionsMap
     ])
 
     const properties = Object.fromEntries(modelPropertyDefinitionsMap)
