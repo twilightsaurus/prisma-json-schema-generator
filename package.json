@@ -68,7 +68,8 @@
         "build": "npm run clean && swc src --out-dir dist --strip-leading-paths --extensions '.ts'",
         "test": "jest src",
         "lint": "eslint --ext .ts \"src/**/*.ts\"",
-        "lint:fix": "npm run lint -- --fix"
+        "lint:fix": "npm run lint -- --fix",
+        "prepare": "npm run clean && swc src --out-dir dist --strip-leading-paths --extensions '.ts'"
     },
     "prettier": {
         "tabWidth": 4,
